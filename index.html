@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pixel Roguelike 🎮</title>
+<style>
+body { margin:0; background:#000; text-align:center; color:white; font-family:sans-serif; }
+canvas { background:#222; display:block; margin:10px auto; border:3px solid #fff; image-rendering: pixelated; }
+</style>
+</head>
+<body>
+<h2>🎮 Pixel Roguelike</h2>
+<canvas id="game" width="400" height="400"></canvas>
+<p id="info"></p>
+<script>
+const c = document.getElementById("game");
+const ctx = c.getContext("2d");
+const TILE = 20;
+const SIZE = 20;
+
+let player, enemies, walls, potions, level;
+
+function init(){
+ player={x:10,y:10,hp:50,maxHp:50,dmg:5};
+ level=1;
+ generate();
+}
+
+function rand(){return Math.floor(Math.random()*SIZE);} 
+
+function generate(){
+ enemies=[]; walls=[]; potions=[];
+ for(let i=0;i<60;i++) walls.push({x:rand(),y:rand()});
+ for(let i=0;i<6+level;i++) enemies.push({x:rand(),y:rand(),hp:10});
+ for(let i=0;i<4;i++) potions.push({x:rand(),y:rand()});
+}
+
+function drawTile(x,y,color){
+ ctx.fillStyle=color;
+ ctx.fillRect(x*TILE,y*TILE,TILE,TILE);
+}
+
+function draw(){
+ ctx.clearRect(0,0,400,400);
+
+ ctx.strokeStyle="#333";
+ for(let i=0;i<SIZE;i++){
+  for(let j=0;j<SIZE;j++){
+   ctx.strokeRect(i*TILE,j*TILE,TILE,TILE);
+  }
+ }
+
+ walls.forEach(w=>drawTile(w.x,w.y,"#555"));
+
+ potions.forEach(p=>{
+  drawTile(p.x,p.y,"#00ffff");
+  ctx.fillStyle="#000";
+  ctx.fillRect(p.x*TILE+6,p.y*TILE+6,8,8);
+ });
+
+ enemies.forEach(e=>{
+  drawTile(e.x,e.y,"#ff3333");
+  ctx.fillStyle="#000";
+  ctx.fillRect(e.x*TILE+5,e.y*TILE+5,10,10);
+ });
+
+ drawTile(player.x,player.y,"#33ff33");
+ ctx.fillStyle="#000";
+ ctx.fillRect(player.x*TILE+5,player.y*TILE+5,10,10);
+
+ document.getElementById("info").innerText=`HP:${player.hp}/${player.maxHp} | DMG:${player.dmg} | LVL:${level}`;
+}
+
+function isWall(x,y){return walls.some(w=>w.x===x&&w.y===y);} 
+
+function move(dx,dy){
+ let nx=player.x+dx, ny=player.y+dy;
+ if(nx<0||ny<0||nx>=SIZE||ny>=SIZE||isWall(nx,ny)) return;
+ player.x=nx; player.y=ny;
+
+ potions=potions.filter(p=>{
+  if(p.x===nx&&p.y===ny){ player.hp=Math.min(player.maxHp,player.hp+20); return false; }
+  return true;
+ });
+
+ enemies.forEach((e,i)=>{
+  if(e.x===nx&&e.y===ny){
+   e.hp-=player.dmg;
+   player.hp-=3;
+   if(e.hp<=0) enemies.splice(i,1);
+  }
+ });
+
+ enemies.forEach(e=>{
+  if(Math.random()<0.6){
+   if(e.x<player.x) e.x++; else if(e.x>player.x) e.x--;
+   if(e.y<player.y) e.y++; else if(e.y>player.y) e.y--;
+  }
+ });
+
+ if(player.hp<=0){ alert("💀 Game Over"); init(); }
+ if(enemies.length===0){ level++; player.maxHp+=10; player.hp=player.maxHp; player.dmg++; alert("🔥 Новый уровень"); generate(); }
+
+ draw();
+}
+
+window.addEventListener("keydown",e=>{
+ if(e.key==="ArrowUp") move(0,-1);
+ if(e.key==="ArrowDown") move(0,1);
+ if(e.key==="ArrowLeft") move(-1,0);
+ if(e.key==="ArrowRight") move(1,0);
+});
+
+init(); draw();
+</script>
+</body>
+</html>
